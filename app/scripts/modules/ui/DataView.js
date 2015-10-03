@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 var JSONFormatter = require('../ui/JSONFormatter');
 var DVHelper = require('../ui/helpers/DataViewHelper');
@@ -342,7 +342,7 @@ DataView.prototype._onClickHandler = function () {
             var attributes = event.target.attributes;
             var key = attributes.key.value;
             var parent = attributes.parent.value;
-            var eventData = that.getData()[parent].data[key].eventData;
+            var eventData = DVHelper.getObjectProperty(that.getData()[parent].data, key).eventData;
 
             that.onValueClick({
                 target: key,

@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 /**
  * Generates attributes in HTML.
@@ -271,6 +271,24 @@ function _getCorrectedValue(value) {
     return value;
 }
 
+/**
+ * Access (nested) object properties by a full path similar to model.getProperty(path).
+ * @param {object} sourceObject
+ * @param {string} path
+ * @returns {any}
+ * @private
+ */
+function _getObjectProperty(sourceObject, path) {
+    if (path === undefined || path === null) {
+        return undefined;
+    }
+    // strip leading slash
+    path = path.replace(/^\//, '');
+    return path.split('/').reduce(function (currentObject, currentPath) {
+        return currentObject ? currentObject[currentPath] : undefined;
+    }, sourceObject);
+}
+
 module.exports = {
     addArrow: _addArrow,
     addKeyTypeInfo: _addKeyTypeInfo,
@@ -280,6 +298,7 @@ module.exports = {
     formatValueForDataView: _formatValueForDataView,
     getCorrectedValue: _getCorrectedValue,
     getObjectLength: _getObjectLength,
+    getObjectProperty: _getObjectProperty,
     getULAttributesFromOptions: _getULAttributesFromOptions,
     getNoDataHTML: _getNoDataHTML,
     openUL: _openUL,
