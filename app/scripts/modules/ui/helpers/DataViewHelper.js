@@ -18,6 +18,32 @@ function _generateTagAttributes(attributes) {
 }
 
 /**
+ * Get editable attributes object for given property.
+ * @param {string} property
+ * @param {Object} options
+ * @returns {Object}
+ * @private
+ */
+function _getEditableValueAttributes(property, options) {
+
+    var attributes = {};
+    if (options && options.editableValues &&
+            (!Array.isArray(options.editableValues) || options.editableValues.indexOf(property) !== -1)) {
+
+        attributes['contentEditable'] = true;
+        attributes['data-control-id'] = options.controlId;
+
+        if (!!options.editModelPath) {
+            attributes['data-model-name'] = options.editModel;
+            attributes['data-model-path'] = options.editModelPath;
+        } else {
+            attributes['data-property-name'] = property;
+        }
+    }
+    return attributes;
+}
+
+/**
  * @param {Object} attributes
  * @returns {string}
  * @private
@@ -316,6 +342,7 @@ module.exports = {
     closeUL: _closeUL,
     findNearestDOMElement: _findNearestDOMElement,
     getCorrectedValue: _getCorrectedValue,
+    getEditableValueAttributes: _getEditableValueAttributes,
     getNoAvailableDataTag: _getNoAvailableDataTag,
     getObjectLength: _getObjectLength,
     getObjectProperty: _getObjectProperty,

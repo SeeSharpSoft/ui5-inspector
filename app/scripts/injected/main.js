@@ -148,6 +148,44 @@ sap.ui.require(['ToolsAPI'], function (ToolsAPI) {
                     target: controlId
                 }
             });
+        },
+
+         /**
+         * Change model property, based on editing in the DataView.
+         * @param {Object} event
+         */
+        'do-control-model-change': function (event) {
+            var data = event.detail.data;
+            var controlId = data.controlId;
+            var modelName = data.model;
+            var path = data.path;
+            var newValue = data.value;
+
+            var control = sap.ui.getCore().byId(controlId);
+
+            if (!control) {
+                return;
+            }
+
+            var model = control.getModel(modelName);
+
+            if (!model) {
+                return;
+            }
+
+            try {
+                // Change the property through its setter
+                model.setProperty(path, newValue);
+            } catch (error) {
+                console.warn(error);
+            }
+
+            // Update the DevTools with the actual property value of the control
+            this['do-control-select']({
+                detail: {
+                    target: controlId
+                }
+            });
         }
     };
 

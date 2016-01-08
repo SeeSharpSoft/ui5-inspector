@@ -17,7 +17,9 @@ function _assembleDataToView(options) {
         hideTitle: options.hideTitle !== undefined ? options.hideTitle : false,
         showTypeInfo: !!options.showTypeInfo,
         title: options.title !== undefined ? options.title : '',
-        editableValues: options.editableValues !== undefined ? options.editableValues : true
+        editableValues: options.editableValues !== undefined ? options.editableValues : true,
+        editModel: options.editModel !== undefined ? options.editModel : undefined,
+        editModelPath: options.editModelPath !== undefined ? options.editModelPath : undefined
     };
 
     return object;

@@ -14,7 +14,9 @@ var DVHelper = require('../ui/helpers/DataViewHelper');
  *                      title:'string',
  *                      showTypeInfo:'boolean', default is false
  *                      showTitle: 'boolean' default is true
- *                      editableValues: 'boolean' default is true
+ *                      editableValues: 'boolean|array' default is true, array with keys of editable data
+ *                      editModel: 'string'
+ *                      editModelPath: 'string'
  *           data:'Object' with all the data to be represented visually
  *      },
  *  }
@@ -46,6 +48,13 @@ function DataView(target, options) {
     };
 
     /**
+     * Method fired when the clicked model value is an editable.
+     * @param {Object} changedData - with the id of the selected control, model name, path and the new value
+     */
+    this.onModelUpdated = function (changedData) {
+    };
+
+    /**
      * Method fired when a clickable element is clicked.
      * @param {Object} event
      */
@@ -55,6 +64,8 @@ function DataView(target, options) {
     if (options) {
 
         this.onPropertyUpdated = options.onPropertyUpdated || this.onPropertyUpdated;
+
+        this.onModelUpdated = options.onModelUpdated || this.onModelUpdated;
 
         this.onValueClick = options.onValueClick || this.onValueClick;
 
@@ -169,20 +180,12 @@ DataView.prototype._generateHTMLForEndOfObject = function (currentElement) {
  */
 DataView.prototype._generateHTMLForKeyValuePair = function (key, value, options) {
     var html = '';
-    var attributes = {};
     var valueHTML;
-
-    if (options && options.editableValues) {
-        attributes = {
-            'contentEditable': options.editableValues,
-            'data-control-id': options.controlId,
-            'data-property-name': key
-        };
-    }
 
     if (value && typeof value === 'object') {
         valueHTML = JSONFormatter.formatJSONtoHTML(value);
     } else {
+        var attributes = DVHelper.getEditableValueAttributes(key, options);
         valueHTML = DVHelper.valueNeedsQuotes(value, DVHelper.wrapInTag('value', value, attributes));
     }
 
@@ -359,17 +362,22 @@ DataView.prototype._onBlurHandler = function (target) {
         var propertyData = {};
         var target = e.target;
         var propertyName;
-        var value;
+        var value = target.textContent.trim();
 
-        propertyData.controlId = target.getAttribute('data-control-id');
-
-        propertyName = target.getAttribute('data-property-name');
-        propertyData.property = propertyName.charAt(0).toUpperCase() + propertyName.slice(1);
-
-        value = target.textContent.trim();
         propertyData.value = DVHelper.getCorrectedValue(value);
+        propertyData.controlId = target.getAttribute('data-control-id');
+        propertyData.path = target.getAttribute('data-model-path');
 
-        that.onPropertyUpdated(propertyData);
+        if (!!propertyData.path) {
+            propertyData.model = target.getAttribute('data-model-name');
+
+            that.onModelUpdated(propertyData);
+        } else {
+            propertyName = target.getAttribute('data-property-name');
+            propertyData.property = propertyName.charAt(0).toUpperCase() + propertyName.slice(1);
+
+            that.onPropertyUpdated(propertyData);
+        }
 
         target.removeEventListener('onblur', this);
         that._selectValue = true;

@@ -114,6 +114,17 @@
 
             controlBindingInfoRightDataView.setData(dataFormatedForDataView);
             controlBindingsSplitter.showEndContainer();
+        },
+
+        /**
+         * Send message, that an proprety in the DataView is changed.
+         * @param {Object} changeData
+         */
+        onModelUpdated: function (changeData) {
+            port.postMessage({
+                action: 'do-control-model-change',
+                data: changeData
+            });
         }
     });
 

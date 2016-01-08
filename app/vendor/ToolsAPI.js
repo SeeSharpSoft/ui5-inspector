@@ -387,6 +387,7 @@ sap.ui.define(['jquery.sap.global', 'sap/ui/core/library', 'sap/ui/Global', 'sap
                 bindingContext = control.getBindingContext();
 
                 result.meta = Object.create(null);
+                result.meta.controlId = controlId;
                 result.contextPath = bindingContext ? bindingContext.getPath() : null;
                 result.aggregations = controlInformation._getBindDataForAggregations(control);
                 result.properties = controlInformation._getBindDataForProperties(control);
