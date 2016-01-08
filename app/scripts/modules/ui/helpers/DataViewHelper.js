@@ -210,6 +210,10 @@ function _toggleCollapse(target) {
 function _getULAttributesFromOptions(options) {
     var attributes = {};
 
+    if (!options) {
+        return attributes;
+    }
+
     if (options.expandable) {
         attributes.expandable = 'true';
     }
@@ -222,18 +226,26 @@ function _getULAttributesFromOptions(options) {
 }
 
 /**
+ * @returns {string}
+ * @private
+ */
+function _getNoAvailableDataTag() {
+    return _wrapInTag('no-data', 'No Available Data');
+}
+
+/**
  * Appropriately wraps in HTML the No Available Data text.
  * @param {string} html
  * @returns {string}
  * @private
  */
-function _getNoDataHTML(html) {
+function _getNoDataHTML() {
     var htmlString = '';
     htmlString += _openUL({
         'expanded': 'true'
     });
     htmlString += _openLI();
-    htmlString += html;
+    htmlString += _getNoAvailableDataTag();
     htmlString += _closeLI();
     htmlString += _closeUL();
 
@@ -257,22 +269,6 @@ function _selectEditableContent(element, shouldSelect) {
 
         return range;
     }
-}
-
-/**
- *
- * @param {string} key
- * @param {Object} currentElement
- * @returns {Object}
- * @private
- */
-function _formatValueForDataView(key, currentElement) {
-    var requiredFormat = {
-        data: {}
-    };
-    requiredFormat.data[key] = currentElement.value;
-
-    return requiredFormat;
 }
 
 /**
@@ -301,8 +297,8 @@ module.exports = {
     closeLI: _closeLI,
     closeUL: _closeUL,
     findNearestDOMElement: _findNearestDOMElement,
-    formatValueForDataView: _formatValueForDataView,
     getCorrectedValue: _getCorrectedValue,
+    getNoAvailableDataTag: _getNoAvailableDataTag,
     getObjectLength: _getObjectLength,
     getULAttributesFromOptions: _getULAttributesFromOptions,
     getNoDataHTML: _getNoDataHTML,

@@ -356,35 +356,6 @@ describe('Helpers for DataView', function () {
 
     });
 
-    describe('#selectEditableContent', function () {
-        var sampleObject;
-        var key;
-        var requiredFormat;
-
-        beforeEach(function () {
-            key = 'title';
-            sampleObject = {
-                type: 'string',
-                value: 'Hello'
-            };
-
-            requiredFormat = {data: {}};
-            requiredFormat.data[key] = sampleObject.value;
-        });
-
-        afterEach(function () {
-            sampleObject = null;
-            requiredFormat = null;
-            key = null;
-        });
-
-        it('should add the value to be changed to the selection', function () {
-            var formattedValueForDataView = DVHelper.formatValueForDataView(key, sampleObject);
-
-            formattedValueForDataView.should.deep.equal(requiredFormat);
-        });
-    });
-
     describe('#getCorrectedValue', function () {
 
         it('should return the correct value for boolean true from string', function () {

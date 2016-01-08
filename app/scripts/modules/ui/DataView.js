@@ -115,20 +115,22 @@ DataView.prototype._isDataEmpty = function () {
  */
 DataView.prototype._generateHTMLFromObject = function (key, currentElement) {
     var html = '';
-    var tag = 'key';
-
     var options = currentElement.options;
 
-    if (options.title) {
-        key = options.title;
-        tag = 'section-title';
-    }
-
-    if (DVHelper.getObjectLength(currentElement) && options.expandable) {
+    if (options.expandable) {
         html += DVHelper.addArrow(options.expanded);
     }
 
-    html += DVHelper.wrapInTag(tag, key, {});
+    if (!options.hideTitle) {
+        var tag = 'key';
+
+        if (options.title) {
+            key = options.title;
+            tag = 'section-title';
+        }
+
+        html += DVHelper.wrapInTag(tag, key, {});
+    }
 
     if (options.showTypeInfo) {
 
@@ -165,10 +167,8 @@ DataView.prototype._generateHTMLForEndOfObject = function (currentElement) {
  * @returns {string}
  * @private
  */
-DataView.prototype._generateHTMLForKeyValuePair = function (key, currentView) {
+DataView.prototype._generateHTMLForKeyValuePair = function (key, value, options) {
     var html = '';
-    var value = currentView.data[key];
-    var options = currentView.options;
     var attributes = {};
     var valueHTML;
 
@@ -197,13 +197,14 @@ DataView.prototype._generateHTMLForKeyValuePair = function (key, currentView) {
  * @returns {string}
  * @private
  */
-DataView.prototype._generateHTMLSection = function (viewObject) {
-    var data = viewObject.data;
-    var associations = viewObject.associations;
+DataView.prototype._generateHTMLSection = function (data, options, associations) {
+    if (!DVHelper.getObjectLength(data)) {
+        return DVHelper.getNoDataHTML();
+    }
+
     var html = '';
-    var options = viewObject.options;
     var isDataArray = Array.isArray(data);
-    var lastArrayElement = data.length - 1;
+    var lastArrayElement = isDataArray && data.length - 1;
 
     html += DVHelper.openUL(DVHelper.getULAttributesFromOptions(options));
 
@@ -215,12 +216,12 @@ DataView.prototype._generateHTMLSection = function (viewObject) {
         // Additional check for currentElement mainly to go around null values errors
         if (currentElement && currentElement.options) {
             html += this._generateHTMLFromObject(key, currentElement);
-            html += this._generateHTMLSection(currentElement);
+            html += this._generateHTMLSection(currentElement.data, currentElement.options, currentElement.associations);
             html += this._generateHTMLForEndOfObject(currentElement);
         } else if (currentElement && currentElement._isClickableValueForDataView) {
-            html += this._generateHTMLForKeyValuePair(key, DVHelper.formatValueForDataView(key, currentElement));
+            html += this._generateHTMLForKeyValuePair(key, currentElement.value);
         } else {
-            html += this._generateHTMLForKeyValuePair(key, viewObject);
+            html += this._generateHTMLForKeyValuePair(key, currentElement, options);
         }
 
         if (isDataArray && key < lastArrayElement) {
@@ -230,11 +231,12 @@ DataView.prototype._generateHTMLSection = function (viewObject) {
         html += DVHelper.closeLI();
     }
 
-    for (var name in associations) {
-        var currentAssociation = associations[name];
-        html += DVHelper.openLI();
-        html += DVHelper.wrapInTag('key', name) + ':&nbsp;' + DVHelper.wrapInTag('value', currentAssociation);
-        html += DVHelper.closeLI();
+    if(associations) {
+        for (var name in associations) {
+            html += DVHelper.openLI();
+            html += this._generateHTMLForKeyValuePair(name, associations[name]);
+            html += DVHelper.closeLI();
+        }
     }
 
     html += DVHelper.closeUL();
@@ -248,57 +250,14 @@ DataView.prototype._generateHTMLSection = function (viewObject) {
 DataView.prototype._generateHTML = function () {
     var viewObjects = this.getData();
     var html = '';
-    var noAvailableData = DVHelper.wrapInTag('no-data', 'No Available Data');
 
     if (this._isDataEmpty()) {
-        this._DataViewContainer.innerHTML = noAvailableData;
-        return;
-    }
-
-    // Go trough all the objects on the top level in the data structure and
-    // skip the ones that does not have anything to display
-    for (var key in viewObjects) {
-        var currentObject = viewObjects[key];
-
-        if (!DVHelper.getObjectLength(currentObject.data)) {
-            html += this._addSectionTitle(currentObject, DVHelper.getNoDataHTML(noAvailableData));
-            continue;
-        }
-
-        html += this._addSectionTitle(currentObject, this._generateHTMLSection(currentObject));
+        html = DVHelper.getNoAvailableDataTag();
+    } else {
+        html += this._generateHTMLSection(viewObjects);
     }
 
     this._DataViewContainer.innerHTML = html;
-};
-
-/**
- * Adds a title to a section from a view object when transformed to HTML.
- * @param {Object} config
- * @param {string} htmlPart
- * @returns {string}
- * @private
- */
-DataView.prototype._addSectionTitle = function (config, htmlPart) {
-    var html = '';
-    var options = config.options;
-
-    if (options.hideTitle) {
-        return htmlPart;
-    }
-
-    html += DVHelper.openUL(DVHelper.getULAttributesFromOptions(options));
-    html += DVHelper.openLI();
-
-    if (config.options.expandable) {
-        html += DVHelper.addArrow(options.expanded);
-    }
-
-    html += DVHelper.wrapInTag('section-title', options.title);
-    html += htmlPart;
-    html += DVHelper.closeLI();
-    html += DVHelper.closeUL();
-
-    return html;
 };
 
 /**
