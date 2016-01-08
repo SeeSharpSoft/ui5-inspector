@@ -39,6 +39,165 @@ function ClickableValue(options) {
     this.eventData = options.eventData || {};
 }
 
+// TODO check whether it's ok to use jQuery.extend
+/**
+ * Copies the properties of the sourceObject into the targetObject
+ *
+ * Remark: This is a simple alternative to jQuery.extend().
+ *
+ * @param {Object} targetObject
+ * @param {Object} sourceObject
+ * @private
+ */
+function _extendObject() {
+    if (arguments.length === 0) {
+        return undefined;
+    }
+
+    var targetObject = arguments[0] || {};
+    var sourceObject;
+    for (var i = 1; i < arguments.length; ++i) {
+        sourceObject = arguments[i];
+        if (sourceObject) {
+            for (var key in sourceObject) {
+                targetObject[key] = sourceObject[key];
+            }
+        }
+    }
+    return targetObject;
+}
+
+/**
+ * Extends options with model-dataview specific data.
+ * Functions returns a new object, the original object is not subject of change.
+ *
+ * @param {object} options
+ * @param {object} modelInfo
+ * @returns {object}
+ * @private
+ */
+function _extendOptionsForModelDataview(options, modelInfo) {
+    var additionalOptions = {};
+    if (modelInfo.mode === 'TwoWay' && options.showValue) {
+        additionalOptions.editableValues = ['value'];
+        additionalOptions.editModel = modelInfo.modelName;
+        additionalOptions.editModelPath = modelInfo.fullPath;
+    }
+    // TODO check whether it's ok to use jQuery.extend
+    return _extendObject({}, options, additionalOptions);
+}
+
+/**
+ * Create a reference to model information consisting of a reference to the model itself and
+ * a path property for the concrete value at the defined path.
+ *
+ * @param {object} options
+ * @param {object} modelInfo
+ * @param {string} key - optional
+ * @returns {object}
+ * @private
+ */
+function _assembleModelReferences(options, modelInfo, key) {
+    // do not print null or undefined
+    if (key === undefined || key === null) {
+        key = '';
+    }
+
+    var modelName = modelInfo.modelName || '';
+    var data = {
+        model: new ClickableValue( {
+            value: modelName + ' (' + (modelInfo.type ? modelInfo.type.split('.').pop() : '<unknown>') + ')',
+            eventData: {
+                name: modelName,
+                type: modelInfo.type,
+                mode: modelInfo.mode,
+                data: modelInfo.modelData
+            },
+            parent: options.parent,
+            key: key + '/model'
+        }),
+        path: new ClickableValue({
+            value: modelInfo.path,
+            eventData: {
+                name: modelName,
+                type: modelInfo.type,
+                mode: modelInfo.mode,
+                path: modelInfo.path,
+                data: modelInfo.pathData
+            },
+            parent: options.parent,
+            key: key + '/path'
+        })
+    };
+
+    if (options.showValue) { // && typeof modelInfo.pathData !== "object"
+        data.value = modelInfo.pathData;
+    }
+
+    return data;
+}
+
+/**
+ * Create a reference to model information consisting of a reference to the model itself and
+ * a path property for the concrete value at the defined path.
+ *
+ * Options object
+ * {
+ *      parent: 'string', the name of the parent section to pass as parameter to clickable values
+ *      showValue: 'boolean', if true the concrete value in the model is added as property
+ *      collection: 'string', name of the nesting key, default is 'parts'
+ *      controlId: 'string', id of inspected control to enable editing
+ * }
+ *
+ * @param {object} options
+ * @param {object} modelInfo
+ * @returns {object}
+ * @private
+ */
+function _assembleModelInfoDataview(options, modelInfo) {
+    if (!modelInfo) {
+        return null;
+    }
+
+    options.data = options.data || Object.create(null);
+
+    if (modelInfo.parts && modelInfo.parts.length > 1) {
+        // add multiple model entries for properties with multiple bindings
+        var collectionName = options.collection || 'parts';
+
+        options.data[collectionName] = _assembleDataToView({
+            title: 'parts',
+            expandable: true,
+            expanded: true,
+            showTypeInfo: true,
+            editableValues: false,
+            data: modelInfo.parts.map(function (partModelInfo, index) {
+
+                var partOptions = _extendObject(
+                    _extendOptionsForModelDataview(options, partModelInfo),
+                    {
+                        expandable: false,
+                        expanded: true,
+                        hideTitle: true,
+                        showTypeInfo: true,
+                        data: _assembleModelReferences(options, partModelInfo, collectionName + '/data/' + index + '/data')
+                    }
+                );
+
+                return _assembleDataToView(partOptions);
+            })
+        });
+    } else {
+        // add a single model entry
+        modelInfo = modelInfo.parts && modelInfo.parts[0] || modelInfo;
+
+        _extendObject(options.data, _assembleModelReferences(options, modelInfo));
+        options = _extendOptionsForModelDataview(options, modelInfo);
+    }
+
+    return _assembleDataToView(options);
+}
+
 // ================================================================================
 // Control Properties Info
 // ================================================================================
@@ -212,13 +371,13 @@ var controlBindings = (function () {
      * @private
      */
     var _getControlContextPathFormattedForDataView = function (initialControlBindingData, resultControlBindingData) {
-        if (initialControlBindingData.contextPath) {
-            resultControlBindingData.contextPath = _assembleDataToView({
+        if (initialControlBindingData.context) {
+            resultControlBindingData.context = _assembleModelInfoDataview({
                 title: 'Binding context',
                 expandable: false,
-                editableValues: false
-            });
-            resultControlBindingData.contextPath.data.contextPath = initialControlBindingData.contextPath;
+                editableValues: false,
+                parent: 'context'
+            }, initialControlBindingData.context);
         }
     };
 
@@ -234,44 +393,29 @@ var controlBindings = (function () {
         }
 
         for (var key in initialControlBindingData.properties) {
-            resultControlBindingData[key] = _assembleDataToView({
-                title: key + ' <opaque>(property)</opaque>',
-                expandable: false,
-                editableValues: false
-            });
-        }
-
-        Object.keys(initialControlBindingData.properties).forEach(function (key) {
             var model = initialControlBindingData.properties[key].model;
             var properties = initialControlBindingData.properties[key];
-            var modelType = model.type ? model.type.split('.').pop() : '';
-            var modelInfo;
 
-            if (model) {
-
-                if (modelType) {
-                    modelInfo = model.names.join(', ') + ' (' + properties.mode + ', ' + modelType + ')';
-                } else {
-                    modelInfo = model.names.join(', ') + ' (' + properties.mode + ')';
-                }
-
-                resultControlBindingData[key].data = {
-                    path: properties.path,
-                    value: properties.value,
+            var options = {
+                title: key + ' <opaque>(property)</opaque>',
+                expandable: false,
+                editableValues: false,
+                data: {
                     type: properties.type,
-                    model: new ClickableValue({
-                        value: modelInfo,
-                        eventData: {
-                            type: model.type,
-                            'default binding mode': properties.mode,
-                            data: model.data
-                        },
-                        parent: key,
-                        key: 'model'
-                    })
-                };
+                    mode: properties.mode
+                },
+                parent: key,
+                showValue: true,
+                controlId: initialControlBindingData.meta.controlId
+            };
+
+            resultControlBindingData[key] = _assembleModelInfoDataview(options, model);
+
+            // add the formatted data at the very end
+            if (properties.formattedValue !== properties.value) {
+                resultControlBindingData[key].data.formatted = properties.formattedValue;
             }
-        });
+        }
     };
 
     /**
@@ -286,24 +430,17 @@ var controlBindings = (function () {
         }
 
         for (var index in initialControlBindingData.aggregations) {
-            resultControlBindingData[index] = _assembleDataToView({
+            var model = initialControlBindingData.aggregations[index].model;
+            resultControlBindingData[index] = _assembleModelInfoDataview({
                 title: index + ' <opaque>(aggregation)</opaque>',
                 expandable: false,
-                editableValues: false
-            });
+                editableValues: false,
+                parent: index,
+                data: {
+                    mode: model.mode
+                }
+            }, model);
         }
-
-        Object.keys(initialControlBindingData.aggregations).forEach(function (key) {
-            var model = initialControlBindingData.aggregations[key].model;
-
-            if (model) {
-                resultControlBindingData[key].data = {
-                    model: '<anchor href="#">' + model.names.join(', ') + '</anchor>',
-                    mode: model.mode,
-                    path: model.path
-                };
-            }
-        });
     };
 
     return {
