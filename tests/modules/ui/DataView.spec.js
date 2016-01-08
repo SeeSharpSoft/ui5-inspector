@@ -196,6 +196,46 @@ var clickableValueData = {
             showTypeInfo: false,
             title: 'counter <opaque>(property)</opaque>'
         }
+    },
+    complex: {
+        data: {
+            info: {
+                data: {
+                    model: {
+                        _isClickableValueForDataView: true,
+                        eventData: {
+                            data: {
+                                isNoPhone: false,
+                                isNoTouch: true,
+                                isPhone: false,
+                                isTouch: true,
+                                listItemType: 'Active',
+                                listMode: 'MultiSelect'
+                            }
+                        },
+                        value: '<clickable-value key="info/data/model" parent="complex">entity (TwoWay, JSONModel)</clickable-value>'
+                    }
+                },
+                options: {
+                    controlId: undefined,
+                    editableValues: false,
+                    expandable: true,
+                    expanded: true,
+                    hideTitle: false,
+                    showTypeInfo: true,
+                    title: 'details'
+                }
+            }
+        },
+        options: {
+            controlId: undefined,
+            editableValues: false,
+            expandable: false,
+            expanded: true,
+            hideTitle: false,
+            showTypeInfo: true,
+            title: 'complex <opaque>(property)</opaque>'
+        }
     }
 };
 
@@ -543,13 +583,12 @@ describe('DataView', function () {
             clickableView._onClickHandler();
             clickableElement = dataViewElement.querySelector('clickable-value');
             clickableView._DataViewContainer.onclick({target: clickableElement});
-            onValueClickSpy.calledWith({
+            sinon.assert.calledWith(onValueClickSpy, {
                 target: 'model',
-                eventData: clickableValueData.counter.data.model.eventData
+                data: clickableValueData.counter.data.model.eventData
             });
             clickHandlerSpy.calledOnce.should.be.equal(true);
         });
-
     });
 
     describe('with initial data', function () {
@@ -633,10 +672,21 @@ describe('DataView', function () {
                 var onValueClickSpy = sinon.spy(sampleView, 'onValueClick');
                 sampleView.setData(clickableValueData);
                 clickableElement = dataViewElement.querySelector('clickable-value');
-                sampleView._DataViewContainer.onclick({target: clickableElement});
-                onValueClickSpy.calledWith({
+                sampleView._DataViewContainer.onclick({ target: clickableElement });
+                sinon.assert.calledWith(onValueClickSpy, {
                     target: 'model',
-                    eventData: clickableValueData.counter.data.model.eventData
+                    data: clickableValueData.counter.data.model.eventData
+                });
+            });
+
+            it('should call onValueClick with the correct arguments (complex)', function () {
+                var onValueClickSpy = sinon.spy(sampleView, 'onValueClick');
+                sampleView.setData(clickableValueData);
+                clickableElement = dataViewElement.querySelectorAll('clickable-value')[1];
+                sampleView._DataViewContainer.onclick({ target: clickableElement });
+                sinon.assert.calledWith(onValueClickSpy, {
+                    target: 'info/data/model',
+                    data: clickableValueData.complex.data.info.data.model.eventData
                 });
             });
 

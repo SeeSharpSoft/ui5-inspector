@@ -411,4 +411,88 @@ describe('Helpers for DataView', function () {
             expect(shouldReturnEmpty).to.equal(null);
         });
     });
+
+    describe('#getObjectProperty', function () {
+        var sampleObject;
+        var referenceObject;
+
+        beforeEach(function () {
+            sampleObject = {
+                value: 'Hello',
+                nested: {
+                    value: 'World',
+                    nested: {
+                        value: 0,
+                        child: {
+                            value: 1
+                        }
+                    }
+                }
+            };
+            referenceObject = {
+                value: 'Hello',
+                nested: {
+                    value: 'World',
+                    nested: {
+                        value: 0,
+                        child: {
+                            value: 1
+                        }
+                    }
+                }
+            };
+            // create reference object to validate that sampleObject was not changed
+            sampleObject.should.deep.equal(referenceObject);
+        });
+
+        afterEach(function () {
+            // always check at the end that the object was not changed in the function
+            sampleObject.should.deep.equal(referenceObject);
+            sampleObject = null;
+            referenceObject = null;
+        });
+
+        it('should return undefined on null object', function () {
+            var result = DVHelper.getObjectProperty(null, 'nested/stringValue');
+            expect(result).to.be.undefined;
+        });
+
+        it('should return undefined on non existing path', function () {
+            var result = DVHelper.getObjectProperty(null, 'nested/notexistant');
+            expect(result).to.be.undefined;
+        });
+
+        it('should return undefined on null path', function () {
+            var result = DVHelper.getObjectProperty(sampleObject, null);
+            expect(result).to.be.undefined;
+        });
+
+        it('should return correct result on simple path', function () {
+            var result = DVHelper.getObjectProperty(sampleObject, 'value');
+            expect(result).to.equal('Hello');
+        });
+
+        it('should return correct string result on simple path with leading slash', function () {
+            var result = DVHelper.getObjectProperty(sampleObject, '/value');
+            expect(result).to.equal('Hello');
+        });
+
+        it('should return correct string result on complex path', function () {
+            var result = DVHelper.getObjectProperty(sampleObject, 'nested/value');
+            expect(result).to.equal('World');
+        });
+
+
+        it('should return correct object result on complex path', function () {
+            var result = DVHelper.getObjectProperty(sampleObject, 'nested/nested/child');
+            result.should.deep.equal({
+                value: 1
+            });
+        });
+
+        it('should return correct string result on more complex path', function () {
+            var result = DVHelper.getObjectProperty(sampleObject, '/nested/nested/child/value');
+            expect(result).to.equal(1);
+        });
+    });
 });
